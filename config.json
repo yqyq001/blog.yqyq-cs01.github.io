@@ -1,6 +1,19 @@
 {
-    "title":"Blog Title",
-    "subTitle":"Blog description",
-    "avatarUrl":"https://github.githubassets.com/favicons/favicon.svg",
-    "GMEEK_VERSION":"last"
+    "title": "椰青叶青",
+    "subTitle": "Coco blog",
+    "avatarUrl": "https://avatars.githubusercontent.com/u/220160960?v=4&size=64",
+    "GMEEK_VERSION": "last",
+    "email": "your-email@example.com",
+    
+    "background": {
+        "desktop": "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1920&q=80",
+        "mobile": "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=720&q=80"
+    },
+    
+    "admin": {
+        "password": "123456"
+    },
+    
+    "githubRepo": "your-username/your-repo",
+    "guestbookLabel": "guestbook"
 }

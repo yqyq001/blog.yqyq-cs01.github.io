@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href="//cdn.staticfile.org/Primer/21.0.7/primer.css" rel="stylesheet" />
+    <link rel="icon" href="https://github.githubassets.com/favicons/favicon.svg">
+    <title>留言板 - 我的博客</title>
+    <script>
+        var blogConfig = {
+            title: "我的博客",
+            subTitle: "欢迎来到我的博客",
+            avatarUrl: "https://github.githubassets.com/favicons/favicon.svg",
+            background: {
+                desktop: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1920&q=80",
+                mobile: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=720&q=80"
+            },
+            githubRepo: "your-username/your-repo",
+            admin: {
+                password: "123456"
+            }
+        };
+        
+        async function loadConfig() {
+            try {
+                const response = await fetch('../config.json');
+                if (response.ok) {
+                    const config = await response.json();
+                    blogConfig = { ...blogConfig, ...config };
+                }
+            } catch(e) {}
+        }
+        loadConfig();
+        
+        if(localStorage.getItem("meek_theme")==null){}
+        else if(localStorage.getItem("meek_theme")=="dark"){document.getElementsByTagName("html")[0].attributes.getNamedItem("data-color-mode").value="dark";}
+        else if(localStorage.getItem("meek_theme")=="light"){document.getElementsByTagName("html")[0].attributes.getNamedItem("data-color-mode").value="light";}
+    </script>
+</head>
+<body>
+    <div id="bgLayer"></div>
+    
+    <div class="main-container">
+        <header class="glass-card header-card">
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="index.html">
+                        <img id="avatarImg" class="avatar" src="" alt="avatar">
+                    </a>
+                    <div class="header-title">
+                        <h1>留言板</h1>
+                        <p class="sub-title">留下你想说的话</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <a href="index.html" class="btn btn-invisible circle" title="返回首页">
+                        <svg class="octicon" width="16" height="16"><path id="iconHome" fill-rule="evenodd"></path></svg>
+                    </a>
+                    <button class="btn btn-invisible circle" onclick="modeSwitch()" title="切换主题">
+                        <svg class="octicon" width="16" height="16"><path id="themeSwitch" fill-rule="evenodd"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <main class="glass-card content-card">
+            <div class="guestbook-form glass-card-inner">
+                <h3>发表评论</h3>
+                <input type="text" id="guestName" class="form-control" placeholder="你的昵称" />
+                <textarea id="guestContent" class="form-control" rows="4" placeholder="写下你的留言... (支持Markdown)"></textarea>
+                <button class="btn btn-primary" onclick="submitGuestbook()">提交留言</button>
+                <p style="margin-top:12px;font-size:12px;color:var(--color-fg-muted)">* 提交后将跳转到GitHub创建Issue，请确保你已登录GitHub</p>
+            </div>
+            
+            <div id="guestbookList" class="guestbook-list"></div>
+        </main>
+        
+        <footer class="glass-card footer-card">
+            <p>Copyright © <span id="year"></span> <span id="footerTitle"></span></p>
+            <p><a href="index.html">返回首页</a></p>
+        </footer>
+    </div>
+
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        line-height: 1.6;
+        min-height: 100vh;
+        color: var(--color-fg-default, #24292f);
+        background: transparent;
+    }
+    
+    #bgLayer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        transition: background-image 0.5s ease;
+    }
+    
+    .main-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .glass-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        margin-bottom: 16px;
+    }
+    
+    .glass-card-inner {
+        background: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+    
+    [data-color-mode="dark"] .glass-card {
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    [data-color-mode="dark"] .glass-card-inner {
+        background: rgba(0, 0, 0, 0.3);
+    }
+    
+    .header-card { padding: 24px; }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    
+    .avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        transition: transform 0.3s ease;
+    }
+    
+    .avatar:hover { transform: scale(1.1) rotate(360deg); }
+    
+    .header-title h1 {
+        font-size: 28px;
+        font-weight: 600;
+        margin: 0;
+        color: var(--color-fg-default, #24292f);
+    }
+    
+    .sub-title {
+        font-size: 14px;
+        color: var(--color-fg-muted, #57606a);
+        margin: 4px 0 0 0;
+    }
+    
+    .header-right { display: flex; gap: 8px; }
+    
+    .header-right .circle {
+        padding: 10px;
+        border-radius: 50%;
+    }
+    
+    .header-right a { color: inherit; text-decoration: none; }
+    
+    .content-card { padding: 24px; min-height: 400px; }
+    
+    .guestbook-form { margin-bottom: 24px; }
+    
+    .guestbook-form h3 {
+        margin-bottom: 16px;
+        font-size: 18px;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.2);
+        font-size: 14px;
+        color: var(--color-fg-default, #24292f);
+    }
+    
+    .form-control:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    }
+    
+    .form-control::placeholder {
+        color: var(--color-fg-muted, #8b949e);
+    }
+    
+    [data-color-mode="dark"] .form-control {
+        background: rgba(0, 0, 0, 0.2);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .guestbook-list { display: flex; flex-direction: column; gap: 16px; }
+    
+    .guestbook-item {
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+    }
+    
+    [data-color-mode="dark"] .guestbook-item {
+        background: rgba(255, 255, 255, 0.08);
+    }
+    
+    .guestbook-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .guestbook-author {
+        font-weight: 600;
+        color: var(--color-fg-default, #24292f);
+    }
+    
+    .guestbook-date {
+        font-size: 12px;
+        color: var(--color-fg-muted, #57606a);
+    }
+    
+    .guestbook-content {
+        color: var(--color-fg-default, #24292f);
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    
+    .guestbook-reply {
+        margin-top: 12px;
+        padding: 12px;
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 8px;
+        border-left: 3px solid #667eea;
+    }
+    
+    .guestbook-reply-label {
+        font-size: 12px;
+        color: #667eea;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    
+    .footer-card {
+        padding: 20px;
+        text-align: center;
+        font-size: 13px;
+        color: var(--color-fg-muted, #57606a);
+    }
+    
+    .footer-card a {
+        color: var(--color-fg-default, #24292f);
+    }
+    
+    @media (max-width: 600px) {
+        .main-container { padding: 12px; }
+        .glass-card { border-radius: 16px; }
+        .header-card { padding: 16px; }
+        .avatar { width: 48px; height: 48px; }
+        .header-title h1 { font-size: 20px; }
+        .content-card { padding: 16px; }
+    }
+</style>
+
+<script>
+    var IconList = {
+        'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z',
+        'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-1.752 4.145.75.75 0 01-1.06 1.06 8.5 8.5 0 001.752-5.665 5.5 5.5 0 01-1.06-4.145.75.75 0 011.06-1.06 7 7 0 011.06 4.705z',
+        'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z'
+    };
+    
+    function init() {
+        if(localStorage.getItem("meek_theme")==null){
+            localStorage.setItem("meek_theme","light");
+            changeLight();
+        }
+        else if(localStorage.getItem("meek_theme")=="dark"){changeDark();}
+        else if(localStorage.getItem("meek_theme")=="light"){changeLight();}
+        
+        setBackground();
+        
+        document.getElementById("pageTitle").textContent = "留言板 - " + blogConfig.title;
+        document.getElementById("footerTitle").textContent = blogConfig.title;
+        document.getElementById("avatarImg").src = blogConfig.avatarUrl;
+        
+        document.getElementById("themeSwitch").setAttribute("d", localStorage.getItem("meek_theme")=="dark" ? IconList["moon"] : IconList["sun"]);
+        document.getElementById("iconHome").setAttribute("d", IconList["home"]);
+        
+        var now = new Date();
+        document.getElementById("year").innerHTML = now.getFullYear();
+        
+        loadGuestbook();
+    }
+    
+    function setBackground() {
+        var bg = blogConfig.background;
+        var isMobile = window.innerWidth <= 600;
+        var bgUrl = isMobile && bg.mobile ? bg.mobile : bg.desktop;
+        document.getElementById("bgLayer").style.backgroundImage = "url('" + bgUrl + "')";
+    }
+    
+    window.addEventListener('resize', setBackground);
+    
+    function changeDark(){
+        document.getElementsByTagName("html")[0].attributes.getNamedItem("data-color-mode").value="dark";
+        document.getElementById("themeSwitch").setAttribute("d", IconList["moon"]);
+        document.getElementById("themeSwitch").parentNode.style.color="#00f0ff";
+    }
+    
+    function changeLight(){
+        document.getElementsByTagName("html")[0].attributes.getNamedItem("data-color-mode").value="light";
+        document.getElementById("themeSwitch").setAttribute("d", IconList["sun"]);
+        document.getElementById("themeSwitch").parentNode.style.color="#ff5000";
+    }
+    
+    function modeSwitch(){
+        if(document.getElementsByTagName("html")[0].attributes[0].value=="light"){
+            changeDark();
+            localStorage.setItem("meek_theme","dark");
+        }
+        else{
+            changeLight();
+            localStorage.setItem("meek_theme","light");
+        }
+    }
+    
+    function loadGuestbook() {
+        var repo = blogConfig.githubRepo || 'your-username/your-repo';
+        var label = blogConfig.guestbookLabel || 'guestbook';
+        
+        fetch(`https://api.github.com/repos/${repo}/issues?labels=${label}&state=all`)
+            .then(response => response.json())
+            .then(data => {
+                var list = document.getElementById('guestbookList');
+                if (!Array.isArray(data) || data.length === 0) {
+                    list.innerHTML = '<p style="text-align:center;color:var(--color-fg-muted)">暂无留言，快来抢沙发吧~</p>';
+                    return;
+                }
+                
+                var issues = data.filter(issue => !issue.pull_request);
+                
+                issues.forEach(issue => {
+                    var item = document.createElement('div');
+                    item.className = 'guestbook-item';
+                    
+                    var date = new Date(issue.created_at).toLocaleDateString('zh-CN');
+                    var body = issue.body || '';
+                    
+                    var replyMatch = body.match(/## 回复\r?\n([\s\S]*)/);
+                    var reply = replyMatch ? replyMatch[1].trim() : '';
+                    var mainContent = replyMatch ? body.split('## 回复')[0].trim() : body;
+                    
+                    item.innerHTML = `
+                        <div class="guestbook-header">
+                            <span class="guestbook-author">${issue.user ? issue.user.login : '匿名'}</span>
+                            <span class="guestbook-date">${date}</span>
+                        </div>
+                        <div class="guestbook-content">${escapeHtml(mainContent)}</div>
+                        ${reply ? `<div class="guestbook-reply"><div class="guestbook-reply-label">站长回复</div>${escapeHtml(reply)}</div>` : ''}
+                    `;
+                    list.appendChild(item);
+                });
+            })
+            .catch(() => {
+                document.getElementById('guestbookList').innerHTML = '<p style="text-align:center;color:var(--color-fg-muted)">无法加载留言，请检查配置</p>';
+            });
+    }
+    
+    function submitGuestbook() {
+        var name = document.getElementById('guestName').value.trim();
+        var content = document.getElementById('guestContent').value.trim();
+        
+        if (!name || !content) {
+            alert('请填写昵称和留言内容');
+            return;
+        }
+        
+        var repo = blogConfig.githubRepo;
+        if (!repo || repo === 'your-username/your-repo') {
+            alert('请先在config.json中配置githubRepo才能提交留言');
+            return;
+        }
+        
+        var label = blogConfig.guestbookLabel || 'guestbook';
+        var url = `https://github.com/${repo}/issues/new?labels=${label}&title=留言: ${name}`;
+        var body = `${name} 写道:\n\n${content}\n\n---\n时间: ${new Date().toLocaleString('zh-CN')}`;
+        url += `&body=${encodeURIComponent(body)}`;
+        
+        window.open(url, '_blank');
+    }
+    
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    init();
+</script>
+</body>
+</html>
